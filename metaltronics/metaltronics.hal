@@ -8,6 +8,7 @@ loadrt hal_parport cfg="0x378 out  "
 setp parport.0.reset-time 5000
 loadrt stepgen step_type=0,0,0,0
 loadrt pwmgen output_type=1
+loadrt testnc count=2
 
 addf parport.0.read base-thread
 addf stepgen.make-pulses base-thread
@@ -20,6 +21,8 @@ addf motion-command-handler servo-thread
 addf motion-controller servo-thread
 addf stepgen.update-freq servo-thread
 addf pwmgen.update servo-thread
+addf testnc.0 servo-thread
+addf testnc.1 servo-thread
 
 net spindle-cmd <= spindle.0.speed-out => pwmgen.0.value
 net spindle-on <= spindle.0.on => pwmgen.0.enable
@@ -87,8 +90,35 @@ setp stepgen.2.stepspace 0
 setp stepgen.2.dirhold 55000
 setp stepgen.2.dirsetup 55000
 setp stepgen.2.maxaccel [JOINT_2]STEPGEN_MAXACCEL
-net zpos-cmd joint.2.motor-pos-cmd => stepgen.2.position-cmd
-net zpos-fb stepgen.2.position-fb => joint.2.motor-pos-fb
+
+# link (between motor "nominal" position and stepper real position)
+setp testnc.0.gain 1
+setp testnc.0.enable [RND_PLANE]RNDP_ENABLE
+setp testnc.0.centerx [RND_PLANE]RNDP_CENTER_X
+setp testnc.0.centery [RND_PLANE]RNDP_CENTER_Y
+setp testnc.0.radx [RND_PLANE]RNDP_RADX
+setp testnc.0.rady [RND_PLANE]RNDP_RADY
+setp testnc.0.limitx [RND_PLANE]RNDP_LIMX
+setp testnc.0.limity [RND_PLANE]RNDP_LIMY
+net rndp_in_x joint.0.pos-cmd testnc.0.x-in
+net rndp_in_y joint.1.pos-cmd testnc.0.y-in
+net cmd_in_z joint.2.motor-pos-cmd testnc.0.z-in 
+net cmd_out_z testnc.0.z-out => stepgen.2.position-cmd
+
+# feedback
+setp testnc.1.gain -1
+setp testnc.1.enable [RND_PLANE]RNDP_ENABLE
+setp testnc.1.centerx [RND_PLANE]RNDP_CENTER_X
+setp testnc.1.centery [RND_PLANE]RNDP_CENTER_Y
+setp testnc.1.radx [RND_PLANE]RNDP_RADX
+setp testnc.1.rady [RND_PLANE]RNDP_RADY
+setp testnc.1.limitx [RND_PLANE]RNDP_LIMX
+setp testnc.1.limity [RND_PLANE]RNDP_LIMY
+net rndp_in_x joint.0.pos-cmd testnc.1.x-in
+net rndp_in_y joint.1.pos-cmd testnc.1.y-in
+net fb_in_z stepgen.2.position-fb testnc.1.z-in 
+net zpos-fb testnc.1.z-out => joint.2.motor-pos-fb
+
 net zstep <= stepgen.2.step
 net zdir <= stepgen.2.dir
 net zenable joint.2.amp-enable-out => stepgen.2.enable
