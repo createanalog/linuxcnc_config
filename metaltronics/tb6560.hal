@@ -41,7 +41,7 @@ setp parport.0.pin-07-out-invert 1
 net ystep => parport.0.pin-04-out
 setp parport.0.pin-04-out-reset 1
 net ydir => parport.0.pin-05-out
-setp parport.0.pin-05-out-invert 1
+setp parport.0.pin-05-out-invert 0
 
 net zstep => parport.0.pin-02-out
 setp parport.0.pin-02-out-reset 1
